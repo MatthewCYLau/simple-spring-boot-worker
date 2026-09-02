@@ -12,6 +12,7 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import static java.util.stream.Collectors.toList;
@@ -52,7 +53,8 @@ public class Poller {
 
     @Scheduled(fixedDelay = 60_000)
     public void getStockPrices(){
-        List<String> tickers = List.of("AAPL", "MSFT");
+        List<String> tickers = List.of("AAPL", "MSFT", "JPM");
+        BigDecimal threshold = new BigDecimal("100.00");
         List<StockInfo> stockInfoList = new ArrayList<>();
         tickers.forEach((stockSymbol) -> {
             BigDecimal stockPrice = yahooFinanceService.getCurrentPrice(stockSymbol);
@@ -64,7 +66,8 @@ public class Poller {
                 .map(stock -> new StockInfo(
                         stock.getSymbol(),
                         applyShock(stock.getMarketPrice(), 0.05)
-                )).toList();
+                )).filter(n -> n.getMarketPrice().compareTo(threshold) > 0)
+                .sorted(Comparator.comparing(StockInfo::getMarketPrice).reversed()).toList();
         for (StockInfo stock : shockedStocks) {
             log.info("Shocked {} stock price: {}", stock.getSymbol(), stock.getMarketPrice());
         }
