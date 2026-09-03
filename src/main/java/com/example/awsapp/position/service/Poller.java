@@ -11,9 +11,11 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -56,7 +58,10 @@ public class Poller {
         List<String> tickers = List.of("AAPL", "MSFT", "JPM");
         BigDecimal threshold = new BigDecimal("100.00");
         List<StockInfo> stockInfoList = new ArrayList<>();
-        tickers.forEach((stockSymbol) -> {
+        var distinctTickers = tickers.stream()
+                .distinct()
+                .toList();
+        distinctTickers.forEach((stockSymbol) -> {
             BigDecimal stockPrice = yahooFinanceService.getCurrentPrice(stockSymbol);
             log.info("Current {} stock price: {}", stockSymbol, stockPrice);
             stockInfoList.add(new StockInfo(stockSymbol, stockPrice));
@@ -71,5 +76,11 @@ public class Poller {
         for (StockInfo stock : shockedStocks) {
             log.info("Shocked {} stock price: {}", stock.getSymbol(), stock.getMarketPrice());
         }
+
+        BigDecimal total = shockedStocks.stream()
+                .map(StockInfo::getMarketPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        log.info("Total shocked prices {}", total);
     }
 }
