@@ -1,5 +1,6 @@
 package com.example.awsapp.position.service;
 import com.example.awsapp.yfinance.service.YahooFinanceService;
+import com.example.awsapp.yfinance.service.models.ShockedStockInfo;
 import com.example.awsapp.yfinance.service.models.StockInfo;
 import lombok.extern.slf4j.Slf4j;
 import com.example.awsapp.position.models.Position;
@@ -67,14 +68,15 @@ public class Poller {
             stockInfoList.add(new StockInfo(stockSymbol, stockPrice));
         });
 
-        List<StockInfo> shockedStocks = stockInfoList.stream()
-                .map(stock -> new StockInfo(
+        List<ShockedStockInfo> shockedStocks = stockInfoList.stream()
+                .map(stock -> new ShockedStockInfo(
                         stock.getSymbol(),
+                        stock.getMarketPrice(),
                         applyShock(stock.getMarketPrice(), 0.05)
                 )).filter(n -> n.getMarketPrice().compareTo(threshold) > 0)
                 .sorted(Comparator.comparing(StockInfo::getMarketPrice).reversed()).toList();
-        for (StockInfo stock : shockedStocks) {
-            log.info("Shocked {} stock price: {}", stock.getSymbol(), stock.getMarketPrice());
+        for (ShockedStockInfo stock : shockedStocks) {
+            log.info("Shocked {} stock price: {}", stock.getSymbol(), stock.getShockedMarketPrice());
         }
 
         BigDecimal total = shockedStocks.stream()
